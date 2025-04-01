@@ -21,10 +21,10 @@ let vao;
 let positionBuffer;
 
 let phase = 0; // (0: initial) -> (1: drawing circle) -> (2) -> (3: drawing line) -> (4)
-let circleCenter = null;
-let circleRadius = null;
-let lineStart = null;
-let lineEnd = null;
+let circleCenter = [0.0, 0.0];
+let circleRadius = 0.0;
+let lineStart = [0.0, 0.0];
+let lineEnd = [0.0, 0.0];
 let iPoints = [];
 const CIRCLE_POINTS = 100;
 let circleArray = [];
@@ -119,6 +119,7 @@ function setupMouseEvents() {
             break;
         case 2:
             lineStart = convertToWebGLCoordinates(x,y);
+            lineEnd = convertToWebGLCoordinates(x,y);
             phase++;
             console.log(phase);
             break;
@@ -240,9 +241,17 @@ function render() {
         else {
             shader.setVec4("u_color", [1.0, 0.0, 1.0, 1.0]);
         }
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(circleArray), gl.STATIC_DRAW);
-        gl.bindVertexArray(vao);
-        gl.drawArrays(gl.LINE_LOOP, 0, CIRCLE_POINTS);
+        if (circleArray.length == 0) {
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(circleCenter), gl.STATIC_DRAW);
+            gl.bindVertexArray(vao);
+            shader.setBool("intersection_point", 0);
+            gl.drawArrays(gl.POINTS, 0, 1);
+        }
+        else {
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(circleArray), gl.STATIC_DRAW);
+            gl.bindVertexArray(vao);
+            gl.drawArrays(gl.LINE_LOOP, 0, CIRCLE_POINTS);
+        }
         if (phase > 2) {
             if (phase == 3) {
                 shader.setVec4("u_color", [0.5, 0.5, 0.5, 1.0]);
@@ -250,10 +259,19 @@ function render() {
             else {
                 shader.setVec4("u_color", [0.5, 0.5, 1.0, 1.0]);
             }
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([...lineStart, ...lineEnd]), 
-                          gl.STATIC_DRAW);
-            gl.bindVertexArray(vao);
-            gl.drawArrays(gl.LINES, 0, 2);
+            if (lineStart[0] == lineEnd[0] && lineStart[1] == lineEnd[1]) {
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineStart), 
+                              gl.STATIC_DRAW);
+                gl.bindVertexArray(vao);
+                shader.setBool("intersection_point", 0);
+                gl.drawArrays(gl.POINTS, 0, 1);
+            }
+            else {
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([...lineStart, ...lineEnd]), 
+                              gl.STATIC_DRAW);
+                gl.bindVertexArray(vao);
+                gl.drawArrays(gl.LINES, 0, 2);
+            }
         }
     }
     if (phase == 4 && iPoints.length > 0) { // draw points
@@ -266,6 +284,7 @@ function render() {
         }
         gl.bufferData(gl.ARRAY_BUFFER, points, gl.STATIC_DRAW);
         gl.bindVertexArray(vao);
+        shader.setBool("intersection_point", 1);
         gl.drawArrays(gl.POINTS, 0, iPoints.length);
     }
 
