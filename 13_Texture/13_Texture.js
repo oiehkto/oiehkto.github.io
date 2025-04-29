@@ -9,7 +9,7 @@
 import { resizeAspectRatio, Axes } from '../util/util.js';
 import { Shader, readShaderFile } from '../util/shader.js';
 import { Octahedron } from './regularOctahedron.js';
-import { Arcball } from './arcball.js';
+import { Arcball } from './arcball_customized.js';
 import { loadTexture } from '../util/texture.js';
 const canvas = document.getElementById('glCanvas');
 const gl = canvas.getContext('webgl2');
