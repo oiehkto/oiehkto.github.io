@@ -15,12 +15,16 @@ import { resizeAspectRatio, setupText, updateText, Axes } from '../util/util.js'
 import { Shader, readShaderFile } from '../util/shader.js';
 import { Arcball } from './arcball_customized.js';
 import { Cylinder } from '../util/cylinder.js';
+import { loadTexture } from '../util/texture.js';
 
 const canvas = document.getElementById('glCanvas');
 const gl = canvas.getContext('webgl2');
+const texture = loadTexture(gl, true, './sunrise.jpg');
 let shader;
-let textOverlay2;
-let textOverlay3;
+let textOverlay1, arcBallMode = 'CAMERA';
+let textOverlay2, toonLevel = 3;
+let textOverlay3, texMode = 'OFF';
+let textOverlay4, toonMode = 0;
 let isInitialized = false;
 document.addEventListener('DOMContentLoaded', () => {
     if (isInitialized) {
@@ -41,8 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 let modelMatrix, viewMatrix, projMatrix, viewPos;
-let arcBallMode = 'CAMERA';     // 'CAMERA' or 'MODEL'
-let toonLevel = 3;
 
 const cylinder = new Cylinder(gl, 32, {color : [1.0, 0.5, 0.0, 1.0]});
 const axes = new Axes(gl, 1.5);
@@ -54,16 +56,27 @@ function setupKeyboardEvents() {
             if (arcBallMode == 'CAMERA') { arcBallMode = 'MODEL'; }
             else { arcBallMode = 'CAMERA'; }
             arcball.switch_mode(arcBallMode);
-            updateText(textOverlay2, "arcball mode: " + arcBallMode);
+            updateText(textOverlay1, "arcball mode: " + arcBallMode);
         }
         else if (event.key == 'r') {
             arcBallMode = 'CAMERA';
             arcball.reset(arcBallMode);
-            updateText(textOverlay2, "arcball mode: " + arcBallMode);
+            updateText(textOverlay1, "arcball mode: " + arcBallMode);
         }
         else if (event.key >= '1' && event.key <= '5') {
             toonLevel = parseInt(event.key);
-            updateText(textOverlay3, "toon levels: " + toonLevel);
+            updateText(textOverlay2, "toon levels: " + toonLevel);
+            render();
+        }
+        else if (event.key == 't') {
+            if (texMode == 'ON') { texMode = 'OFF'; }
+            else { texMode = 'ON'; }
+            updateText(textOverlay3, "texture: " + texMode);
+            render();
+        }
+        else if (event.key == 'm') {
+            toonMode = ++toonMode % 5;
+            updateText(textOverlay4, "toon mode: " + toonMode);
             render();
         }
     });
@@ -79,6 +92,8 @@ function initWebGL() {
     canvas.height = 700;
     resizeAspectRatio(gl, canvas);
     gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
     
     return true;
 }
@@ -105,6 +120,8 @@ function render() {
     shader.setMat4('u_view', viewMatrix);
     shader.setVec3('u_viewPos', viewPos);
     shader.setFloat('toonLevel', toonLevel);
+    shader.setBool('texMode', texMode == 'ON');
+    shader.setInt('toonMode', toonMode);
     cylinder.draw(shader);
 
     // drawing the axes (using the axes's shader: see util.js)
@@ -143,14 +160,18 @@ async function main() {
         shader.setInt("material.diffuse", 0);
         shader.setVec3("material.specular", vec3.fromValues(0.8, 0.8, 0.8));
         shader.setFloat("material.shininess", 32.0);
-        shader.setFloat("toonLevel", toonLevel);
 
-
-        setupText(canvas, "TOON SHADING", 1);
-        textOverlay2 = setupText(canvas, "arcball mode: " + arcBallMode, 2);
-        textOverlay3 = setupText(canvas, "toon levels: " + toonLevel, 3);
-        setupText(canvas, "press a/r to change/reset arcball mode", 4);
-        setupText(canvas, "press 1 - 5 to change toon shading levels", 5);
+        let ln = 1;
+        setupText(canvas, "TOON SHADING", ln++);
+        textOverlay1 = setupText(canvas, "arcball mode: " + arcBallMode, ln++);
+        textOverlay2 = setupText(canvas, "toon levels: " + toonLevel, ln++);
+        setupText(canvas, "press a/r to change/reset arcball mode", ln++);
+        setupText(canvas, "press 1 - 5 to change toon shading levels", ln++);
+        ln = 31;
+        textOverlay3 = setupText(canvas, "texture: " + texMode, ln++);
+        textOverlay4 = setupText(canvas, "toon mode: " + toonMode, ln++);
+        setupText(canvas, "press t to turn on/off the texture", ln++);
+        setupText(canvas, "press m to change toon shading modes (0 - 4)", ln++);
 
         setupKeyboardEvents();
         requestAnimationFrame(render);

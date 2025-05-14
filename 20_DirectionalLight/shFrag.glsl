@@ -6,6 +6,7 @@ out vec4 FragColor;
 in vec3 fragPos;  
 in vec3 normal;  
 in vec3 color;
+in vec2 texCoord;
 
 struct Material {
     sampler2D diffuse; // diffuse map
@@ -25,10 +26,16 @@ uniform Material material;
 uniform Light light;
 uniform vec3 u_viewPos;
 uniform float toonLevel;
+uniform bool texMode;
+uniform int toonMode;
+
+#define Q(a) ((round((a) * toonLevel - 0.5) + 0.5) / toonLevel)
+#define Q_vec3(a) (normalize(a) * Q(sqrt(dot(a,a) / 3.0)) * sqrt(3.0))
 
 void main() {
+    vec3 rgb = texMode ? texture(material.diffuse, texCoord).rgb : color;
+
     // ambient
-    vec3 rgb = color;
     vec3 ambient = light.ambient * rgb;
   	
     // diffuse 
@@ -36,23 +43,34 @@ void main() {
     vec3 lightDir = normalize(light.direction);
     float dotNormLight = dot(norm, lightDir);
     float diff = max(dotNormLight, 0.0);
-    vec3 diffuse = light.diffuse * diff * rgb;  
+    vec3 use = light.diffuse * rgb;
+    vec3 diffuse = light.diffuse * rgb * diff;
     
     // specular
     vec3 viewDir = normalize(u_viewPos - fragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
-
     float dotViewDirReflectDir = dot(viewDir, reflectDir);
-    float spec;
-    if (dotNormLight > 0.0) {
-        spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-    }
-    else spec = 0.0f;
-
-    vec3 specular = light.specular * spec * material.specular;  
+    float spec = 0.0;
+    if (dotNormLight > 0.0) { spec = pow(max(dotViewDirReflectDir, 0.0), material.shininess); }
+    vec3 ular = light.specular * material.specular;
+    vec3 specular = light.specular * material.specular * spec;
 
     // result
-    vec3 result = ambient + diffuse + specular;
-    result = (round(result * toonLevel - 0.5) + 0.5) / toonLevel;
+    vec3 result;
+    if(toonMode == 0) {
+        result = ambient + Q(diff)*use + Q(spec)*ular;
+    }
+    else if(toonMode == 1) {
+        result = ambient + Q_vec3(diff*use + spec*ular);
+    }
+    else if(toonMode == 2) {
+        result = Q_vec3(ambient + diff*use + spec*ular);
+    }
+    else if(toonMode == 3) {
+        result = ambient + Q(diff*use + spec*ular);
+    }
+    else if(toonMode == 4) {
+        result = Q(ambient + diff*use + spec*ular);
+    }
     FragColor = vec4(result, 1.0);
 } 
