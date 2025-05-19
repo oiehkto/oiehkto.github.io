@@ -17,19 +17,17 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000);
 document.body.appendChild(renderer.domElement);
 
-
 const perspectiveCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const orthographicCamera = new THREE.OrthographicCamera(window.innerWidth / -16, window.innerWidth / 16, window.innerHeight / 16, window.innerHeight / -16, -200, 500);
+const orthographicCamera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, -500, 500);
 const p_orbitControls = new OrbitControls(perspectiveCamera, renderer.domElement);
 const o_orbitControls = new OrbitControls(orthographicCamera, renderer.domElement);
 
 window.addEventListener('resize', onResize, false);
 function onResize() {
-    perspectiveCamera.aspect = window.innerWidth / window.innerHeight;
-    orthographicCamera.left = window.innerWidth / -16;
-    orthographicCamera.right = window.innerWidth / 16;
-    orthographicCamera.top = window.innerHeight / 16;
-    orthographicCamera.bottom = window.innerHeight / -16;
+	let aspect = window.innerWidth / window.innerHeight;
+    perspectiveCamera.aspect = aspect;
+    orthographicCamera.left = orthographicCamera.bottom * aspect;
+    orthographicCamera.right = orthographicCamera.top * aspect;
     perspectiveCamera.updateProjectionMatrix();
     orthographicCamera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -62,8 +60,8 @@ const ORBIT_CONST = 30;
 
 const camera_control = {
 	dir : null,
-	zoom : 0,
 	fov : 0,
+	sun_size : 0,
 	time : 0,
 	p2o : false,
 	o2p : false,
@@ -75,7 +73,7 @@ const camera_control = {
 				perspectiveCamera.position.y,
 				perspectiveCamera.position.z
 			);
-			this.zoom = 90 / this.dir.length();
+			this.sun_size = Math.asin(10 / this.dir.length()) * 360 / (Math.PI * 75);
 			this.dir.normalize();
 			this.fov = 75;
 			this.time = 0;
@@ -88,7 +86,7 @@ const camera_control = {
 				orthographicCamera.position.y,
 				orthographicCamera.position.z
 			).normalize();
-			this.zoom = orthographicCamera.zoom;
+			this.sun_size = 10 * orthographicCamera.zoom / orthographicCamera.top;
 			this.fov = 0;
 			this.time = 0;
 			this.o2p = true;
@@ -108,29 +106,30 @@ const camera_control = {
 				this.fov -= 7.5;
 				if(this.fov == 0) {
 					this['Current Camera'] = 'Orthographic';
-					orthographicCamera.position.set(this.dir.x * 90, this.dir.y * 90, this.dir.z * 90);
-					orthographicCamera.zoom = this.zoom;
-					orthographicCamera.updateProjectionMatrix();
+					orthographicCamera.position.set(this.dir.x, this.dir.y, this.dir.z);
+					orthographicCamera.zoom = 1;
+					orthographicCamera.top = 10 / this.sun_size;
+					orthographicCamera.bottom = -10 / this.sun_size;
+					onResize();
 					this.p2o = false;
 				}
 				else {
-					this.change_fov(this.fov);
+					this.apply_pers_fov();
 				}
 			}
 			else if(this.o2p) {
 				this.fov += 7.5;
-				this.change_fov(this.fov);
+				this.apply_pers_fov();
 				if(this.fov == 75) {
 					this.o2p = false;
 				}
 			}
 		}
 	},
-	change_fov : function(new_fov) {
-		this.fov = new_fov;
-		perspectiveCamera.fov = new_fov;
-		let len = (90 / this.zoom) * (Math.sin(Math.PI * 5 / 24) / Math.sin(Math.PI * new_fov / 360));
-		perspectiveCamera.position.set(this.dir.x * len, this.dir.y * len, this.dir.z * len);
+	apply_pers_fov : function() {
+		perspectiveCamera.fov = this.fov;
+		let r = 10 / Math.sin(this.sun_size * Math.PI * this.fov / 360);
+		perspectiveCamera.position.set(this.dir.x * r, this.dir.y * r, this.dir.z * r);
 		perspectiveCamera.updateProjectionMatrix();
 	}
 };
