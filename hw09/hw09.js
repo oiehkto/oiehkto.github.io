@@ -26,6 +26,8 @@ const o_orbitControls = new OrbitControls(orthographicCamera, renderer.domElemen
 window.addEventListener('resize', onResize, false);
 function onResize() {
     perspectiveCamera.aspect = window.innerWidth / window.innerHeight;
+    orthographicCamera.aspect = window.innerWidth / window.innerHeight;
+    perspectiveCamera.updateProjectionMatrix();
     orthographicCamera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 }
@@ -105,6 +107,7 @@ const camera_control = {
 					this['Current Camera'] = 'Orthographic';
 					orthographicCamera.position.set(this.dir.x * 90, this.dir.y * 90, this.dir.z * 90);
 					orthographicCamera.zoom = this.zoom;
+					orthographicCamera.updateProjectionMatrix();
 					this.p2o = false;
 				}
 				else {
