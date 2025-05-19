@@ -62,9 +62,6 @@ const camera_control = {
 	dir : null,
 	fov : 0,
 	sun_size : 0,
-	time : 0,
-	p2o : false,
-	o2p : false,
 	gui : null,
 	'Switch Camera Type' : function() {
 		if(this['Current Camera'] == 'Perspective') {
@@ -75,9 +72,7 @@ const camera_control = {
 			);
 			this.sun_size = Math.asin(10 / this.dir.length()) * 360 / (Math.PI * 75);
 			this.dir.normalize();
-			this.fov = 75;
-			this.time = 0;
-			this.p2o = true;
+			this.fov = -75;
 		}
 		else {
 			this['Current Camera'] = 'Perspective';
@@ -88,49 +83,35 @@ const camera_control = {
 			).normalize();
 			this.sun_size = 10 * orthographicCamera.zoom / orthographicCamera.top;
 			this.fov = 0;
-			this.time = 0;
-			this.o2p = true;
 		}
 	},
 	'Current Camera' : 'Perspective',
 	initialize : function() {
+		this.fov = 75;
+		this['Current Camera'] = 'Perspective';
 		this.gui = gui.addFolder('Camera');
 		this.gui.add(this, 'Switch Camera Type');
 		this.gui.add(this, 'Current Camera').listen();
 	},
 	update : function(t) {
-		this.time += t;
-		if(this.time > 0.01) {
-			this.time -= 0.01;
-			if(this.p2o) {
-				this.fov -= 7.5;
-				if(this.fov == 0) {
-					this['Current Camera'] = 'Orthographic';
-					orthographicCamera.position.set(this.dir.x, this.dir.y, this.dir.z);
-					orthographicCamera.zoom = 1;
-					orthographicCamera.top = 10 / this.sun_size;
-					orthographicCamera.bottom = -10 / this.sun_size;
-					onResize();
-					this.p2o = false;
-				}
-				else {
-					this.apply_pers_fov();
-				}
+		if(this['Current Camera'] == 'Perspective' && this.fov < 75) {
+			this.fov += 7.5;
+			if(this.fov == 0) {
+				this['Current Camera'] = 'Orthographic';
+				orthographicCamera.position.set(this.dir.x, this.dir.y, this.dir.z);
+				orthographicCamera.zoom = 1;
+				orthographicCamera.top = 10 / this.sun_size;
+				orthographicCamera.bottom = -10 / this.sun_size;
+				onResize();
 			}
-			else if(this.o2p) {
-				this.fov += 7.5;
-				this.apply_pers_fov();
-				if(this.fov == 75) {
-					this.o2p = false;
-				}
+			else {
+				let fov = (this.fov < 0) ? -this.fov : this.fov;
+				let r = 10 / Math.sin(this.sun_size * Math.PI * fov / 360);
+				perspectiveCamera.fov = fov;
+				perspectiveCamera.position.set(this.dir.x * r, this.dir.y * r, this.dir.z * r);
+				perspectiveCamera.updateProjectionMatrix();
 			}
 		}
-	},
-	apply_pers_fov : function() {
-		perspectiveCamera.fov = this.fov;
-		let r = 10 / Math.sin(this.sun_size * Math.PI * this.fov / 360);
-		perspectiveCamera.position.set(this.dir.x * r, this.dir.y * r, this.dir.z * r);
-		perspectiveCamera.updateProjectionMatrix();
 	}
 };
 
