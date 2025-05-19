@@ -26,7 +26,10 @@ const o_orbitControls = new OrbitControls(orthographicCamera, renderer.domElemen
 window.addEventListener('resize', onResize, false);
 function onResize() {
     perspectiveCamera.aspect = window.innerWidth / window.innerHeight;
-    orthographicCamera.aspect = window.innerWidth / window.innerHeight;
+    orthographicCamera.left = window.innerWidth / -16;
+    orthographicCamera.right = window.innerWidth / 16;
+    orthographicCamera.top = window.innerHeight / 16;
+    orthographicCamera.bottom = window.innerHeight / -16;
     perspectiveCamera.updateProjectionMatrix();
     orthographicCamera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
