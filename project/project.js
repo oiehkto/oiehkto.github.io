@@ -137,10 +137,11 @@ scene.add(background);
 // Stars
 const starDistance = 200;
 const celestial = new THREE.Group(); // for stars
+const celestial2 = new THREE.Group(); // for background stars
 const constellation = new THREE.Group(); // for pattern
 const starGeo = new THREE.SphereGeometry(starDistance / 1000);
 const starMat = new THREE.MeshStandardMaterial({color : 0xffffff, emissive : 0xffffff});
-const starSelectionGeo = new THREE.SphereGeometry(starDistance / 50);
+const starSelectionGeo = new THREE.SphereGeometry(starDistance / 80);
 const starSelectionMat = new THREE.MeshBasicMaterial({color : 0xffffff, transparent : true, opacity : 0.5, visible : false});
 
 // Surface
@@ -476,6 +477,7 @@ function findPatterns(edge_list) {
 					break;
 			}
 		}
+		// if matched, change color(edge_list) and make visible(constellation_list[i])
 		if(matched) {
 			constellation_found[i] = true;
 			ui_update();
@@ -485,9 +487,12 @@ function findPatterns(edge_list) {
 			constellation_list[i].forEach((edge) => {
 				edge.material.color = new THREE.Color(0xa0a0a0);
 			});
+			break;
 		}
+		edge_list.forEach((edge => {
+			edge.material.color = new THREE.Color(0xff5000);
+		}));
 	}
-	// if matched, change color(edge_list) and make visible(constellation_list.edge_list)
 	// fadeout edges
 	edge_list.forEach((edge) => {
 		fadeoutEffect.push(
@@ -501,13 +506,23 @@ function init_constellation() {
 		const starMesh = new THREE.Mesh(starGeo, starMat);
 		const star = new THREE.Mesh(starSelectionGeo, starSelectionMat.clone());
 		star.add(starMesh);
-		starMesh.scale.multiplyScalar(6-starInfo.mag);
+		starMesh.scale.multiplyScalar(1.5+Math.exp(1-starInfo.mag));
 		star.position.setFromSphericalCoords(starDistance, starInfo.phi * Math.PI / 180, starInfo.theta * Math.PI / 180);
 		star.userData = { id : starInfo.id, constellation_id : starInfo.constellation_id };
 		celestial.add(star);
 	});
+	for(let i=0; i<1000; i++) {
+		const star = new THREE.Mesh(starGeo, starMat);
+		star.scale.multiplyScalar(0.4);
+		star.position.randomDirection().multiplyScalar(starDistance);
+		celestial2.add(star);
+	}
+
 	celestial.position.set(0, -120, 0);
 	scene.add(celestial);
+
+	celestial2.position.copy(celestial.position);
+	scene.add(celestial2);
 
 	constellation.position.copy(celestial.position);
 	scene.add(constellation);
@@ -571,6 +586,7 @@ function render() {
 	if(inputs['s']) { surface.position.sub(dir); rotAngle += stelRotSpeed * t;}
 	if(inputs['d']) { boat.rotation.y -= boatRotSpeed * t; }
 	celestial.rotateOnWorldAxis( axis, rotAngle );
+	celestial2.rotateOnWorldAxis( axis, rotAngle );
 	constellation.rotateOnWorldAxis( axis, rotAngle );
 	// Update surface geometry
 	updateSurface(t);
