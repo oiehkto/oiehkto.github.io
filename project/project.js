@@ -33,14 +33,15 @@ for(let i=1; i<=88; i++) {
 	constellationImages.push(textureLoader.load('textures/constellation_patterns/0'+i+'.png'));
 	constellationImages_simple.push(textureLoader.load('textures/constellation_patterns/'+i+'.png'));
 }
-const ui_0 = new THREE.Sprite(new THREE.SpriteMaterial({ map : textureLoader.load('textures/ui_0.png')}));
-const ui_1 = new THREE.Sprite(new THREE.SpriteMaterial({ map : textureLoader.load('textures/ui_1.png')}));
+const ui_0 = new THREE.Sprite(new THREE.SpriteMaterial({ map : textureLoader.load('textures/title.png') }));
+const ui_1 = new THREE.Sprite(new THREE.SpriteMaterial({ map : textureLoader.load('textures/click_to_start.png') }));
 const ui_2 = new THREE.Sprite(new THREE.SpriteMaterial({ map : numberImages[0] }));
 const ui_3 = new THREE.Sprite(new THREE.SpriteMaterial({ map : numberImages[0] }));
 const ui_4 = new THREE.Sprite(new THREE.SpriteMaterial({ map : numberImages[10] }));
 const ui_5 = new THREE.Sprite(new THREE.SpriteMaterial({ map : numberImages[8] }));
 const ui_6 = new THREE.Sprite(new THREE.SpriteMaterial({ map : numberImages[8] }));
-const ui_7 = new THREE.Sprite(new THREE.SpriteMaterial({ map : constellationImages[0]}));
+const ui_7 = new THREE.Sprite(new THREE.SpriteMaterial({ map : constellationImages[0] }));
+const ui_8 = new THREE.Sprite(new THREE.SpriteMaterial({ map : textureLoader.load('textures/guide.png') }));
 scene_ui.add(ui_0);
 scene_ui.add(ui_1);
 scene_ui.add(ui_2);
@@ -49,12 +50,14 @@ scene_ui.add(ui_4);
 scene_ui.add(ui_5);
 scene_ui.add(ui_6);
 scene_ui.add(ui_7);
+scene_ui.add(ui_8);
 ui_2.visible = false;
 ui_3.visible = false;
 ui_4.visible = false;
 ui_5.visible = false;
 ui_6.visible = false;
 ui_7.visible = false;
+ui_8.visible = false;
 
 function ui_update() {
 	// change number of found constellations, current constellation image
@@ -102,6 +105,8 @@ function onresize_ui() {
 	ui_7.center = new THREE.Vector2(0, 0);
 	ui_7.scale.set(sc, sc, 1);
 	ui_7.position.set(window.innerWidth / 2, -window.innerHeight / 2, 0);
+
+	ui_8.scale.set(window.innerWidth * 0.47, window.innerWidth * 0.25, 1);
 }
 
 /*** Add objects ***/
@@ -704,6 +709,7 @@ function initialize() {
 				{object: ui_1, time: 1.5, action: function() {
 					scene_ui.remove(ui_1);
 					ui_update();
+					ui_8.visible = true;
 				}}
 			);
 			cameraController.switchMode(
@@ -715,6 +721,11 @@ function initialize() {
 			);
 			break;
 		case 'playing':
+			fadeoutEffect.push(
+				{object: ui_8, time: 1.5, action: function() {
+					scene_ui.remove(ui_8);
+				}}
+			);
 			starSelectionManager.onpointerdown();
 		}
 	}
@@ -743,10 +754,14 @@ function initialize() {
 		if(uiMode == 'playing' && key == 'r') {
 			uiMode = 'waiting';
 			if(camera.fov == 75) {
+				const newpos = new THREE.Vector3().copy(camera.position);
+				newpos.y = 0;
+				newpos.setLength(5);
+				newpos.y = -4;
 				cameraController.switchMode(
 					0.5,
 					120,
-					new THREE.Vector3(0, -4, 5),
+					newpos,
 					new THREE.Vector3(),
 					function() {
 						cameraController.orbitControls.enableZoom = false;
@@ -755,10 +770,14 @@ function initialize() {
 				);
 			}
 			else if(camera.fov == 120) {
+				const newpos = new THREE.Vector3().copy(camera.position);
+				newpos.y = 0;
+				newpos.setLength(15);
+				newpos.y = -4;
 				cameraController.switchMode(
 					0.5,
 					45,
-					new THREE.Vector3(0, -4, 15),
+					newpos,
 					new THREE.Vector3(),
 					function() {
 						cameraController.orbitControls.enableZoom = false;
@@ -767,10 +786,14 @@ function initialize() {
 				);
 			}
 			else if(camera.fov == 45) {
+				const newpos = new THREE.Vector3().copy(camera.position);
+				newpos.y = 0;
+				newpos.setLength(25);
+				newpos.y = 4;
 				cameraController.switchMode(
 					0.5,
 					75,
-					new THREE.Vector3(0, 4, 25),
+					newpos,
 					new THREE.Vector3(),
 					function() {
 						uiMode = 'playing';
