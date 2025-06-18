@@ -271,6 +271,7 @@ const timer = {time : 0.0, period : 0.1, update : function(t) {
 };
 
 function setBoatY(y, t) {
+	if(t == 0) { return; }
 	const maxAcceleration = 10;
 	const y_vel = (y - boat.position.y) / t;
 	const y_acc = (y_vel - boat.userData.yVelocity) / t;
