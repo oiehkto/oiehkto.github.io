@@ -11,7 +11,7 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 const clock = new THREE.Clock(false);
 const raycaster = new THREE.Raycaster();
 const mousePointer = new THREE.Vector2();
-const inputs = { 'w' : false, 'a' : false, 's' : false, 'd' : false, 'tab' : false };
+const inputs = { 'w' : false, 'a' : false, 's' : false, 'd' : false, 'f' : false };
 let gamePhase = 'init';
 
 const scene_ui = new THREE.Scene();
@@ -174,7 +174,7 @@ function init_ui() {
 	); // 7
 	add_ui(textureLoader.load('textures/guide.png'), false,
 		new THREE.Vector2(0.5, 0.5),
-		new THREE.Vector2(0.47, 0), new THREE.Vector2(0.25, 0),
+		new THREE.Vector2(0.5, 0), new THREE.Vector2(0.3, 0),
 		new THREE.Vector2(), new THREE.Vector2()
 	); // 8
 	add_ui(textureLoader.load('textures/gamemode1.png'), true,
@@ -440,7 +440,7 @@ const starSelectionManager = {
 	selectedStars : [],
 	selectedEdges : [],
 	onpointerdown : function() {
-		if(this.selectedStars.length == 1) {
+		if(this.selectedStars.length > 0) {
 			this.selectingMode = true;
 			cameraController.disposeOrbitControls();
 		}
@@ -453,7 +453,7 @@ const starSelectionManager = {
 		this.unselect();
 	},
 	unselect : function() {
-		if(!this.selectingMode) {
+		if(!this.selectingMode && !inputs['f']) {
 			this.selectedStars.forEach((star) => {
 				star.material.color = new THREE.Color(0xffffff);
 				star.material.visible = false;
@@ -466,16 +466,16 @@ const starSelectionManager = {
 	select : function(star) {
 		this.unselect();
 		star.material.visible = true;
-		if(this.selectedStars.length == 0) {
-			this.selectedStars.push(star);
+		if(this.selectedStars.length > 0) {
+			this.selectedStars[this.selectedStars.length-1].material.color = new THREE.Color(0xffffff);
 		}
-		else {
-			const a = this.selectedStars[this.selectedStars.length-1].userData.id;
+		this.selectedStars.push(star);
+		if(this.selectingMode) {
+			star.material.color = new THREE.Color(0xffff50);
+
+			const a = this.selectedStars[this.selectedStars.length-2].userData.id;
 			const b = star.userData.id;
 			if(a != b) {
-				this.selectedStars[this.selectedStars.length-1].material.color = new THREE.Color(0xffffff);
-				star.material.color = new THREE.Color(0xffff50);
-				this.selectedStars.push(star);
 				for(let i=0; i<this.selectedEdges.length; i++) {
 					if(this.selectedEdges[i].userData.id1 == Math.min(a,b) &&
 					this.selectedEdges[i].userData.id2 == Math.max(a,b)) { return; }
@@ -686,12 +686,16 @@ function render() {
 	if(intersections.length == 0) {
 		// camera is not in the background sphere
 		starSelectionManager.unselect();
-		ui[7].sprite.visible = false;
+		if(!starSelectionManager.selectingMode) {
+			ui[7].sprite.visible = false;
+		}
 	}
 	else if(intersections[0].object.userData.id == 0) {
 		// no stars selected
 		starSelectionManager.unselect();
-		ui[7].sprite.visible = false;
+		if(!starSelectionManager.selectingMode) {
+			ui[7].sprite.visible = false;
+		}
 	}
 	else {
 		// star selected
@@ -700,7 +704,7 @@ function render() {
 		if(gamePhase == 'playing') {
 			ui[7].sprite.visible = true;
 		}
-		if(inputs['tab']) {
+		if(starSelectionManager.selectingMode) {
 			ui[7].sprite.material.map = constellationImages_simple[star.userData.constellation_id-1];
 		}
 		else {
