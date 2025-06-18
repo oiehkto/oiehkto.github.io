@@ -137,10 +137,10 @@ function init_ui() {
 		new THREE.Vector2(0.4, 0), new THREE.Vector2(0.08, 0),
 		new THREE.Vector2(0.4, 0), new THREE.Vector2()
 	); // 0
-	add_ui(textureLoader.load('textures/click_to_start.png'), true,
-		new THREE.Vector2(0.5, 0.5),
-		new THREE.Vector2(0.09, 0), new THREE.Vector2(0.018, 0),
-		new THREE.Vector2(), new THREE.Vector2(0, -0.4)
+	add_ui(textureLoader.load('textures/copyright.png'), true,
+		new THREE.Vector2(),
+		new THREE.Vector2(0.16, 0), new THREE.Vector2(0.038, 0),
+		new THREE.Vector2(0.4, 0), new THREE.Vector2(-0.2, 0)
 	); // 1
 	add_ui(numberImages[0], false,
 		new THREE.Vector2(0.5, 0.5),
