@@ -106,13 +106,8 @@ export const patternData = [
   },
   {
     "id": 4,
-    "star1": 29,
-    "star2": 39
-  },
-  {
-    "id": 4,
     "star1": 24,
-    "star2": 39
+    "star2": 29
   },
   {
     "id": 4,
@@ -767,7 +762,7 @@ export const patternData = [
   {
     "id": 19,
     "star1": 147,
-    "star2": 152
+    "star2": 150
   },
   {
     "id": 19,
@@ -3528,11 +3523,6 @@ export const patternData = [
     "id": 83,
     "star1": 702,
     "star2": 705
-  },
-  {
-    "id": 83,
-    "star1": 716,
-    "star2": 718
   },
   {
     "id": 83,

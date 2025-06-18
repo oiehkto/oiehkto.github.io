@@ -1,147 +1,54 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
 import { starData } from './starData.js';
 import { patternData } from './patternData.js';
+
 /*** Global ***/
 const scene = new THREE.Scene();
 const renderer = new THREE.WebGLRenderer({ antialias : true });
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const textureLoader = new THREE.TextureLoader();
 const clock = new THREE.Clock(false);
 const raycaster = new THREE.Raycaster();
 const mousePointer = new THREE.Vector2();
-const inputs = {
-	'w' : false,
-	'a' : false,
-	's' : false,
-	'd' : false,
-	'tab' : false
-};
+const inputs = { 'w' : false, 'a' : false, 's' : false, 'd' : false, 'tab' : false };
+let gamePhase = 'init';
 
 const scene_ui = new THREE.Scene();
 const camera_ui = new THREE.OrthographicCamera(-window.innerWidth / 2, window.innerWidth / 2, window.innerHeight / 2, -window.innerHeight / 2, 1, 1000);
-
-let uiMode = 'init';
+const ui = []; // {sprite, scaleX, scaleY, posX, posY}
 const numberImages = [];
-for(let i=0; i<10; i++) {
-	numberImages.push(textureLoader.load('textures/number_'+i+'.png'));
-}
-numberImages.push(textureLoader.load('textures/number_s.png'));
 const constellationImages = [];
 const constellationImages_simple = [];
-for(let i=1; i<=88; i++) {
-	constellationImages.push(textureLoader.load('textures/constellation_patterns/0'+i+'.png'));
-	constellationImages_simple.push(textureLoader.load('textures/constellation_patterns/'+i+'.png'));
-}
-const ui_0 = new THREE.Sprite(new THREE.SpriteMaterial({ map : textureLoader.load('textures/title.png') }));
-const ui_1 = new THREE.Sprite(new THREE.SpriteMaterial({ map : textureLoader.load('textures/click_to_start.png') }));
-const ui_2 = new THREE.Sprite(new THREE.SpriteMaterial({ map : numberImages[0] }));
-const ui_3 = new THREE.Sprite(new THREE.SpriteMaterial({ map : numberImages[0] }));
-const ui_4 = new THREE.Sprite(new THREE.SpriteMaterial({ map : numberImages[10] }));
-const ui_5 = new THREE.Sprite(new THREE.SpriteMaterial({ map : numberImages[8] }));
-const ui_6 = new THREE.Sprite(new THREE.SpriteMaterial({ map : numberImages[8] }));
-const ui_7 = new THREE.Sprite(new THREE.SpriteMaterial({ map : constellationImages[0] }));
-const ui_8 = new THREE.Sprite(new THREE.SpriteMaterial({ map : textureLoader.load('textures/guide.png') }));
-scene_ui.add(ui_0);
-scene_ui.add(ui_1);
-scene_ui.add(ui_2);
-scene_ui.add(ui_3);
-scene_ui.add(ui_4);
-scene_ui.add(ui_5);
-scene_ui.add(ui_6);
-scene_ui.add(ui_7);
-scene_ui.add(ui_8);
-ui_2.visible = false;
-ui_3.visible = false;
-ui_4.visible = false;
-ui_5.visible = false;
-ui_6.visible = false;
-ui_7.visible = false;
-ui_8.visible = false;
 
-function ui_update() {
-	// change number of found constellations, current constellation image
-	let n_found = 0;
-	constellation_found.forEach((found) => {
-		if(found) {n_found++;}
-	});
-	ui_3.visible = true;
-	ui_4.visible = true;
-	ui_5.visible = true;
-	ui_6.visible = true;
-	const dec = Math.floor(n_found / 10);
-	if(dec == 0) {
-		ui_2.visible = false;
-	}
-	else {
-		ui_2.visible = true;
-		ui_2.material.map = numberImages[dec];
-	}
-	ui_3.material.map = numberImages[n_found % 10];
-}
-
-function onresize_ui() {
-	ui_0.center = new THREE.Vector2(0, 0);
-	ui_0.scale.set(window.innerWidth * 0.4, window.innerWidth * 0.08, 1);
-	ui_0.position.set(window.innerWidth * 0.4, 0, 0);
-
-	ui_1.center = new THREE.Vector2(0.5, 0.5);
-	ui_1.scale.set(window.innerWidth * 0.09, window.innerWidth * 0.018, 1);
-	ui_1.position.set(0, -window.innerHeight * 0.4, 0);
-
-	ui_2.scale.set(window.innerWidth * 0.01, window.innerWidth * 0.02, 1);
-	ui_3.scale.set(window.innerWidth * 0.01, window.innerWidth * 0.02, 1);
-	ui_4.scale.set(window.innerWidth * 0.01, window.innerWidth * 0.02, 1);
-	ui_5.scale.set(window.innerWidth * 0.01, window.innerWidth * 0.02, 1);
-	ui_6.scale.set(window.innerWidth * 0.01, window.innerWidth * 0.02, 1);
-
-	ui_2.position.set(window.innerWidth * 0.02, -window.innerHeight * 0.4, 0);
-	ui_3.position.set(window.innerWidth * 0.01, -window.innerHeight * 0.4, 0);
-	ui_4.position.set(0, -window.innerHeight * 0.4, 0);
-	ui_5.position.set(-window.innerWidth * 0.01, -window.innerHeight * 0.4, 0);
-	ui_6.position.set(-window.innerWidth * 0.02, -window.innerHeight * 0.4, 0);
-
-	const sc = Math.min(window.innerWidth / 4, window.innerHeight / 3);
-	ui_7.center = new THREE.Vector2(0, 0);
-	ui_7.scale.set(sc, sc, 1);
-	ui_7.position.set(window.innerWidth / 2, -window.innerHeight / 2, 0);
-
-	ui_8.scale.set(window.innerWidth * 0.47, window.innerWidth * 0.25, 1);
-}
-
-/*** Add objects ***/
+/*** Scene objects ***/
 
 // Ambient light
 const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
-// Point light
-const pointLight = new THREE.PointLight(0xffffff, 10000, 0, 2);
-pointLight.position.set(0, 0, 0);
-pointLight.castShadow = true;
-scene.add(pointLight);
+
 // Spot light
 const spotLight = new THREE.SpotLight();
 spotLight.intensity = 10;
 spotLight.decay = 0;
 spotLight.position.set(0, 20, 0);
 spotLight.penumbra = 0.5;
-scene.add(spotLight);
+scene.add( spotLight );
 
 // Background
 const backgroundGeo = new THREE.SphereGeometry(160);
 const backgroundMat = new THREE.MeshBasicMaterial({color : 0x000000, side : THREE.BackSide});
 const background = new THREE.Mesh(backgroundGeo, backgroundMat);
-background.userData = { id : 0 };
-scene.add(background);
+scene.add( background );
 
 // Stars
-const starDistance = 200;
-const celestial = new THREE.Group(); // for stars
-const celestial2 = new THREE.Group(); // for background stars
-const constellation = new THREE.Group(); // for pattern
-const starGeo = new THREE.SphereGeometry(starDistance / 1000);
+const celestial_radius = 200;
+const group_stars_selectable = new THREE.Group();
+const group_stars_background = new THREE.Group();
+const group_lines = new THREE.Group();
+const starGeo = new THREE.SphereGeometry(celestial_radius / 1000);
 const starMat = new THREE.MeshStandardMaterial({color : 0xffffff, emissive : 0xffffff});
-const starSelectionGeo = new THREE.SphereGeometry(starDistance / 80);
+const starSelectionGeo = new THREE.SphereGeometry(celestial_radius / 80);
 const starSelectionMat = new THREE.MeshBasicMaterial({color : 0xffffff, transparent : true, opacity : 0.5, visible : false});
 
 // Surface
@@ -157,21 +64,153 @@ const surfaceMaterial = new THREE.MeshStandardMaterial({
 	opacity : 0.7
 });
 const surface = new THREE.Mesh(surfaceGeometry, surfaceMaterial);
-surface.rotation.x = -Math.PI / 2;
-surface.position.y = -5;
-surface.receiveShadow = true;
 scene.add( surface );
-const z_velocity = new Float32Array((segments + 1) ** 2); // velocity for points of plane
+const z_velocity = new Float32Array((segments + 1) ** 2); // velocity of points in plane
 
 // Boat
 const boatGeometry = new THREE.CapsuleGeometry(1, 1);
 const boatMaterial = new THREE.MeshBasicMaterial( {color: 0xffffff} ); 
 const boatMesh = new THREE.Mesh( boatGeometry, boatMaterial );
-boatMesh.rotation.x = -Math.PI/2;
+const boatLight = new THREE.PointLight(0xffffff, 10000, 0, 2);
 
 const boat = new THREE.Group();
-boat.add(boatMesh);
+boat.add( boatMesh );
+boat.add( boatLight );
 scene.add( boat );
+
+
+
+
+function ui_update() {
+	// change number of found constellations, current constellation image
+	let n_found = 0;
+	constellation_found.forEach((found) => {
+		if(found) {n_found++;}
+	});
+	ui[3].sprite.visible = true;
+	ui[4].sprite.visible = true;
+	ui[5].sprite.visible = true;
+	ui[6].sprite.visible = true;
+	const dec = Math.floor(n_found / 10);
+	if(dec == 0) {
+		ui[2].sprite.visible = false;
+	}
+	else {
+		ui[2].sprite.visible = true;
+		ui[2].sprite.material.map = numberImages[dec];
+	}
+	ui[3].sprite.material.map = numberImages[n_found % 10];
+}
+
+function ui_resize() {
+	const windowSize = new THREE.Vector2(window.innerWidth, window.innerHeight);
+	ui.forEach((ui_element) => {
+		ui_element.sprite.scale.set(ui_element.scaleX.dot(windowSize), ui_element.scaleY.dot(windowSize), 1);
+		ui_element.sprite.position.set(ui_element.posX.dot(windowSize), ui_element.posY.dot(windowSize), 0);
+	});
+}
+
+function init_ui() {
+	scene_ui.add(camera_ui);
+	camera_ui.position.set(0, 0, -500);
+	camera_ui.lookAt(0, 0, 0);
+	// Load textures
+	const textureLoader = new THREE.TextureLoader();
+	for(let i=0; i<10; i++) {
+		numberImages.push(textureLoader.load('textures/number_'+i+'.png'));
+	}
+	numberImages.push(textureLoader.load('textures/number_s.png'));
+	for(let i=1; i<=88; i++) {
+		constellationImages.push(textureLoader.load('textures/constellation_patterns/0'+i+'.png'));
+		constellationImages_simple.push(textureLoader.load('textures/constellation_patterns/'+i+'.png'));
+	}
+	// Add UI
+	function add_ui(texture, initial_visibility, center, scaleX, scaleY, posX, posY) {
+		const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+			map : texture
+		}));
+		sprite.visible = initial_visibility;
+		sprite.center = center;
+		scene_ui.add(sprite);
+		ui.push({ sprite : sprite, scaleX : scaleX, scaleY : scaleY, posX : posX, posY : posY });
+	}
+
+	add_ui(textureLoader.load('textures/title.png'), true,
+		new THREE.Vector2(),
+		new THREE.Vector2(0.4, 0), new THREE.Vector2(0.08, 0),
+		new THREE.Vector2(0.4, 0), new THREE.Vector2()
+	);
+	add_ui(textureLoader.load('textures/click_to_start.png'), true,
+		new THREE.Vector2(0.5, 0.5),
+		new THREE.Vector2(0.09, 0), new THREE.Vector2(0.018, 0),
+		new THREE.Vector2(), new THREE.Vector2(0, -0.4)
+	);
+	add_ui(numberImages[0], false,
+		new THREE.Vector2(0.5, 0.5),
+		new THREE.Vector2(0.01, 0), new THREE.Vector2(0.02, 0),
+		new THREE.Vector2(0.02, 0), new THREE.Vector2(0, -0.4)
+	);
+	add_ui(numberImages[0], false,
+		new THREE.Vector2(0.5, 0.5),
+		new THREE.Vector2(0.01, 0), new THREE.Vector2(0.02, 0),
+		new THREE.Vector2(0.01, 0), new THREE.Vector2(0, -0.4)
+	);
+	add_ui(numberImages[10], false,
+		new THREE.Vector2(0.5, 0.5),
+		new THREE.Vector2(0.01, 0), new THREE.Vector2(0.02, 0),
+		new THREE.Vector2(), new THREE.Vector2(0, -0.4)
+	);
+	add_ui(numberImages[8], false,
+		new THREE.Vector2(0.5, 0.5),
+		new THREE.Vector2(0.01, 0), new THREE.Vector2(0.02, 0),
+		new THREE.Vector2(-0.01, 0), new THREE.Vector2(0, -0.4)
+	);
+	add_ui(numberImages[8], false,
+		new THREE.Vector2(0.5, 0.5),
+		new THREE.Vector2(0.01, 0), new THREE.Vector2(0.02, 0),
+		new THREE.Vector2(-0.02, 0), new THREE.Vector2(0, -0.4)
+	);
+	add_ui(constellationImages[0], false,
+		new THREE.Vector2(),
+		new THREE.Vector2(0, 0.3), new THREE.Vector2(0, 0.3),
+		new THREE.Vector2(0.5, 0), new THREE.Vector2(0, -0.5)
+	);
+	add_ui(textureLoader.load('textures/guide.png'), false,
+		new THREE.Vector2(0.5, 0.5),
+		new THREE.Vector2(0.47, 0), new THREE.Vector2(0.25, 0),
+		new THREE.Vector2(), new THREE.Vector2()
+	);
+	// Set UI size
+	ui_resize();
+}
+
+function init_renderer() {
+	renderer.outputColorSpace = THREE.SRGBColorSpace;
+	renderer.shadowMap.enabled = true;
+	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.setClearColor(0x000000);
+	renderer.autoClear = false;
+	document.body.appendChild(renderer.domElement);
+}
+
+function init_camera() {
+	scene.add(camera);
+	camera.position.set(-40, 30, 50);
+	camera.lookAt(0, 0, 0);
+}
+
+
+
+function init_scene() {
+	background.userData = { id : 0 };
+	surface.position.y = -5;
+	surface.rotation.x = -Math.PI / 2;
+	boatMesh.rotation.x = -Math.PI / 2;
+	boatLight.position.y = 1;
+	boat.userData = { yVelocity : 0 };
+	boat.position.copy(surface.position);
+}
 
 
 
@@ -185,17 +224,13 @@ const timer = {time : 0.0, period : 0.1, update : function(t) {
 	} }
 };
 
-const boat_stabilizer = {
-	history : new Float32Array(5),
-	newest : 0,
-	push : function(value) {
-		this.history[this.newest] = value / this.history.length;
-		this.newest = (this.newest + 1) % this.history.length;
-		let sum = 0;
-		this.history.forEach((v) => {sum += v});
-		return sum;
-	}
-};
+function setBoatY(y, t) {
+	const maxAcceleration = 10;
+	const y_vel = (y - boat.position.y) / t;
+	const y_acc = (y_vel - boat.userData.yVelocity) / t;
+	boat.userData.yVelocity += t * Math.max(-maxAcceleration, Math.min(maxAcceleration, y_acc));
+	boat.position.y += t * boat.userData.yVelocity;
+}
 
 function updateSurface(t) {
 	function indexOf(i,j) {return i+j*(segments + 1);}
@@ -271,7 +306,7 @@ function updateSurface(t) {
 		new_z[indexOf(boat_i+2, boat_j)] +
 		new_z[indexOf(boat_i, boat_j-2)] +
 		new_z[indexOf(boat_i, boat_j+2)]) / 4 + surface.position.y;
-	boat.position.y = boat_stabilizer.push(boat_y);
+	setBoatY(boat_y, t);
 	// update attributes of plane
 	z_velocity.set(new_v);
 	surfaceGeometry.setAttribute('position', attr);
@@ -281,8 +316,8 @@ function updateSurface(t) {
 const fadeoutEffect = [];
 
 const cameraController = {
-	isOrbitControlOn : true,
-	orbitControls : new OrbitControls(camera, renderer.domElement),
+	isOrbitControlOn : false,
+	orbitControls : null,
 	time : 0,
 	fov : 0,
 	position : new THREE.Vector3(),
@@ -415,10 +450,10 @@ const starSelectionManager = {
 };
 
 function createPatternEdge(star1, star2, edgecolor=0x505050) { // id: star1 < star2
-	const v1 = celestial.worldToLocal(star1.getWorldPosition(new THREE.Vector3()));
-	const v2 = celestial.worldToLocal(star2.getWorldPosition(new THREE.Vector3()));
+	const v1 = group_stars_selectable.worldToLocal(star1.getWorldPosition(new THREE.Vector3()));
+	const v2 = group_stars_selectable.worldToLocal(star2.getWorldPosition(new THREE.Vector3()));
 	const theta = v1.angleTo(v2);
-	const curve = new THREE.EllipseCurve(0, 0, starDistance, starDistance, (Math.PI-theta)/2, (Math.PI+theta)/2);
+	const curve = new THREE.EllipseCurve(0, 0, celestial_radius, celestial_radius, (Math.PI-theta)/2, (Math.PI+theta)/2);
 
 	const u1 = new THREE.Vector3().subVectors(v2, v1).normalize();
 	const u3 = new THREE.Vector3().crossVectors(v2, v1).normalize();
@@ -438,7 +473,7 @@ function createPatternEdge(star1, star2, edgecolor=0x505050) { // id: star1 < st
 		new THREE.LineBasicMaterial({ color : edgecolor })
 	);
 	edge.userData = { id1 : star1.userData.id, id2 : star2.userData.id };
-	constellation.add(edge);
+	group_lines.add(edge);
 	return edge;
 }
 
@@ -482,7 +517,7 @@ function findPatterns(edge_list) {
 			constellation_found[i] = true;
 			ui_update();
 			edge_list.forEach((edge) => {
-				edge.material.color = new THREE.Color(0xffffff);
+				edge.material.color = new THREE.Color(0x50ff50);
 			});
 			constellation_list[i].forEach((edge) => {
 				edge.material.color = new THREE.Color(0xa0a0a0);
@@ -496,39 +531,39 @@ function findPatterns(edge_list) {
 	// fadeout edges
 	edge_list.forEach((edge) => {
 		fadeoutEffect.push(
-			{object: edge, time: 1, action: function() {constellation.remove(this.object);}}
+			{object: edge, time: 1, action: function() {group_lines.remove(this.object);}}
 		);
 	});
 }
 
-function init_constellation() {
+function init_sky() {
 	starData.forEach((starInfo) => {
 		const starMesh = new THREE.Mesh(starGeo, starMat);
 		const star = new THREE.Mesh(starSelectionGeo, starSelectionMat.clone());
 		star.add(starMesh);
 		starMesh.scale.multiplyScalar(1.5+Math.exp(1-starInfo.mag));
-		star.position.setFromSphericalCoords(starDistance, starInfo.phi * Math.PI / 180, starInfo.theta * Math.PI / 180);
+		star.position.setFromSphericalCoords(celestial_radius, starInfo.phi * Math.PI / 180, starInfo.theta * Math.PI / 180);
 		star.userData = { id : starInfo.id, constellation_id : starInfo.constellation_id };
-		celestial.add(star);
+		group_stars_selectable.add(star);
 	});
 	for(let i=0; i<1000; i++) {
 		const star = new THREE.Mesh(starGeo, starMat);
 		star.scale.multiplyScalar(0.4);
-		star.position.randomDirection().multiplyScalar(starDistance);
-		celestial2.add(star);
+		star.position.randomDirection().multiplyScalar(celestial_radius);
+		group_stars_background.add(star);
 	}
 
-	celestial.position.set(0, -120, 0);
-	scene.add(celestial);
+	group_stars_selectable.position.set(0, -120, 0);
+	scene.add(group_stars_selectable);
 
-	celestial2.position.copy(celestial.position);
-	scene.add(celestial2);
+	group_stars_background.position.copy(group_stars_selectable.position);
+	scene.add(group_stars_background);
 
-	constellation.position.copy(celestial.position);
-	scene.add(constellation);
+	group_lines.position.copy(group_stars_selectable.position);
+	scene.add(group_lines);
 
 	function findStar(id) {
-		const list = celestial.children;
+		const list = group_stars_selectable.children;
 		for(let i=0; i<list.length; i++) {
 			if(list[i].userData.id == id) {
 				return list[i];
@@ -585,38 +620,38 @@ function render() {
 	if(inputs['a']) { boat.rotation.y += boatRotSpeed * t; }
 	if(inputs['s']) { surface.position.sub(dir); rotAngle += stelRotSpeed * t;}
 	if(inputs['d']) { boat.rotation.y -= boatRotSpeed * t; }
-	celestial.rotateOnWorldAxis( axis, rotAngle );
-	celestial2.rotateOnWorldAxis( axis, rotAngle );
-	constellation.rotateOnWorldAxis( axis, rotAngle );
+	group_stars_selectable.rotateOnWorldAxis( axis, rotAngle );
+	group_stars_background.rotateOnWorldAxis( axis, rotAngle );
+	group_lines.rotateOnWorldAxis( axis, rotAngle );
 	// Update surface geometry
 	updateSurface(t);
 
 
 	// select stars
 	raycaster.setFromCamera( mousePointer, camera );
-	const intersections = raycaster.intersectObjects([background, ...celestial.children], false);
+	const intersections = raycaster.intersectObjects([background, ...group_stars_selectable.children], false);
 	if(intersections.length == 0) {
 		// camera is not in the background sphere
 		starSelectionManager.unselect();
-		ui_7.visible = false;
+		ui[7].sprite.visible = false;
 	}
 	else if(intersections[0].object.userData.id == 0) {
 		// no stars selected
 		starSelectionManager.unselect();
-		ui_7.visible = false;
+		ui[7].sprite.visible = false;
 	}
 	else {
 		// star selected
 		const star = intersections[0].object;
 		starSelectionManager.select(star);
-		if(uiMode == 'playing') {
-			ui_7.visible = true;
+		if(gamePhase == 'playing') {
+			ui[7].sprite.visible = true;
 		}
 		if(inputs['tab']) {
-			ui_7.material.map = constellationImages_simple[star.userData.constellation_id-1];
+			ui[7].sprite.material.map = constellationImages_simple[star.userData.constellation_id-1];
 		}
 		else {
-			ui_7.material.map = constellationImages[star.userData.constellation_id-1];
+			ui[7].sprite.material.map = constellationImages[star.userData.constellation_id-1];
 		}
 console.log(star.userData.id);
 	}
@@ -660,29 +695,12 @@ console.log(star.userData.id);
 
 
 
-function init_ui() {
-	camera_ui.position.set(0, 0, -500);
-	camera_ui.lookAt(0, 0, 0);
-	scene_ui.add(camera_ui);
-	onresize_ui();
-}
+async function initialize() {
+	init_renderer();
+	init_camera();
+	init_scene();
 
-
-function initialize() {
-	// renderer
-	renderer.outputColorSpace = THREE.SRGBColorSpace;
-	renderer.shadowMap.enabled = true;
-	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-	renderer.setSize(window.innerWidth, window.innerHeight);
-	renderer.setClearColor(0x000000);
-	renderer.autoClear = false;
-	document.body.appendChild(renderer.domElement);
-	//camera
-	cameraController.disposeOrbitControls();
-	camera.position.set(-40, 30, 50); // 0, 40, 80
-	camera.lookAt(0, 0, 0);
-	scene.add(camera);
-	init_constellation();
+	init_sky();
 	init_ui();
 
   /*** Add event listeners ***/
@@ -699,7 +717,7 @@ function initialize() {
 		camera_ui.updateProjectionMatrix();
 
 	    renderer.setSize(window.innerWidth, window.innerHeight);
-		onresize_ui();
+		ui_resize();
 	}
 	window.onblur = () =>
 	{
@@ -715,17 +733,17 @@ function initialize() {
 	// mouse
 	window.onpointerdown = () =>
 	{
-		switch(uiMode) {
+		switch(gamePhase) {
 		case 'init':
-			uiMode = 'waiting';
+			gamePhase = 'waiting';
 			fadeoutEffect.push(
-				{object: ui_0, time: 1.5, action: function() {
-					scene_ui.remove(ui_0);
+				{object: ui[0].sprite, time: 1.5, action: function() {
+					scene_ui.remove(ui[0].sprite);
 				}},
-				{object: ui_1, time: 1.5, action: function() {
-					scene_ui.remove(ui_1);
+				{object: ui[1].sprite, time: 1.5, action: function() {
+					scene_ui.remove(ui[1].sprite);
 					ui_update();
-					ui_8.visible = true;
+					ui[8].sprite.visible = true;
 				}}
 			);
 			cameraController.switchMode(
@@ -733,13 +751,13 @@ function initialize() {
 				75,
 				new THREE.Vector3(0, 4, 25),
 				new THREE.Vector3(),
-				function() {uiMode = 'playing';}
+				function() {gamePhase = 'playing';}
 			);
 			break;
 		case 'playing':
 			fadeoutEffect.push(
-				{object: ui_8, time: 1.5, action: function() {
-					scene_ui.remove(ui_8);
+				{object: ui[8].sprite, time: 1.5, action: function() {
+					scene_ui.remove(ui[8].sprite);
 				}}
 			);
 			starSelectionManager.onpointerdown();
@@ -747,7 +765,7 @@ function initialize() {
 	}
 	window.onpointerup = () =>
 	{
-		switch(uiMode) {
+		switch(gamePhase) {
 		case 'playing':
 			starSelectionManager.onpointerup();
 		}
@@ -761,14 +779,14 @@ function initialize() {
 	window.onkeydown = (e) =>
 	{
 		const key = e.key.toLowerCase();
-		if(uiMode == 'playing' || uiMode == 'waiting') {
+		if(gamePhase == 'playing' || gamePhase == 'waiting') {
 			if(key in inputs) {
 				inputs[key] = true;
 				e.preventDefault();
 			}
 		}
-		if(uiMode == 'playing' && key == 'r') {
-			uiMode = 'waiting';
+		if(gamePhase == 'playing' && key == 'r') {
+			gamePhase = 'waiting';
 			if(camera.fov == 75) {
 				const newpos = new THREE.Vector3().copy(camera.position);
 				newpos.y = 0;
@@ -781,7 +799,7 @@ function initialize() {
 					new THREE.Vector3(),
 					function() {
 						cameraController.orbitControls.enableZoom = false;
-						uiMode = 'playing';
+						gamePhase = 'playing';
 					}
 				);
 			}
@@ -797,7 +815,7 @@ function initialize() {
 					new THREE.Vector3(),
 					function() {
 						cameraController.orbitControls.enableZoom = false;
-						uiMode = 'playing';
+						gamePhase = 'playing';
 					}
 				);
 			}
@@ -812,7 +830,7 @@ function initialize() {
 					newpos,
 					new THREE.Vector3(),
 					function() {
-						uiMode = 'playing';
+						gamePhase = 'playing';
 					}
 				);
 			}
@@ -826,7 +844,7 @@ function initialize() {
 		}
 	}
 }
-initialize();
+await initialize();
 clock.start();
 render();
 

@@ -266,13 +266,6 @@ export const starData = [
     "constellation_id": 4
   },
   {
-    "id": 39,
-    "theta": 313.163375,
-    "phi": 98.98325,
-    "mag": 4.73,
-    "constellation_id": 4
-  },
-  {
     "id": 40,
     "theta": 336.3192083,
     "phi": 88.62261111,
