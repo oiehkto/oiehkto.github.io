@@ -13,6 +13,7 @@ const raycaster = new THREE.Raycaster();
 const mousePointer = new THREE.Vector2();
 const inputs = { 'w' : false, 'a' : false, 's' : false, 'd' : false, 'f' : false };
 let gamePhase = 'init';
+let gameScore = {distance : 0, time : 0};
 
 const scene_ui = new THREE.Scene();
 const camera_ui = new THREE.OrthographicCamera(-window.innerWidth / 2, window.innerWidth / 2, window.innerHeight / 2, -window.innerHeight / 2, 1, 1000);
@@ -79,7 +80,7 @@ boat.add( boatLight );
 scene.add( boat );
 
 
-function ui_update() {
+function update_number_found() {
 	// change number of found constellations, current constellation image
 	let n_found = 0;
 	constellation_found.forEach((found) => {
@@ -97,6 +98,10 @@ function ui_update() {
 		ui[2].sprite.material.map = numberImages[dec];
 	}
 	ui[3].sprite.material.map = numberImages[n_found % 10];
+
+	if((gameMode == 1 && n_found == 12) || (gameMode == 2 && n_found == 88)) {
+		finish_game();
+	}
 }
 
 function ui_resize() {
@@ -105,6 +110,16 @@ function ui_resize() {
 		ui_element.sprite.scale.set(ui_element.scaleX.dot(windowSize), ui_element.scaleY.dot(windowSize), 1);
 		ui_element.sprite.position.set(ui_element.posX.dot(windowSize), ui_element.posY.dot(windowSize), 0);
 	});
+}
+
+function add_ui(texture, initial_visibility, center, scaleX, scaleY, posX, posY) {
+	const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+		map : texture
+	}));
+	sprite.visible = initial_visibility;
+	sprite.center = center;
+	scene_ui.add(sprite);
+	ui.push({ sprite : sprite, scaleX : scaleX, scaleY : scaleY, posX : posX, posY : posY });
 }
 
 function init_ui() {
@@ -121,17 +136,7 @@ function init_ui() {
 		constellationImages.push(textureLoader.load('textures/constellation_patterns/0'+i+'.png'));
 		constellationImages_simple.push(textureLoader.load('textures/constellation_patterns/'+i+'.png'));
 	}
-	// Add UI
-	function add_ui(texture, initial_visibility, center, scaleX, scaleY, posX, posY) {
-		const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
-			map : texture
-		}));
-		sprite.visible = initial_visibility;
-		sprite.center = center;
-		scene_ui.add(sprite);
-		ui.push({ sprite : sprite, scaleX : scaleX, scaleY : scaleY, posX : posX, posY : posY });
-	}
-
+	// Add UIs
 	add_ui(textureLoader.load('textures/title.png'), true,
 		new THREE.Vector2(),
 		new THREE.Vector2(0.4, 0), new THREE.Vector2(0.08, 0),
@@ -226,8 +231,55 @@ function start_game() {
 		ui[5].sprite.material.map = numberImages[8];
 		ui[6].sprite.material.map = numberImages[8];
 	}
-	ui_update();
+	update_number_found();
 }
+
+function finish_game() {
+	add_ui(new THREE.TextureLoader().load('textures/clear_'+gameMode+'.png'), true,
+		new THREE.Vector2(0.5, 0.5),
+		new THREE.Vector2(0.554, 0), new THREE.Vector2(0.2, 0),
+		new THREE.Vector2(), new THREE.Vector2()
+	);
+	let dist = Math.floor(gameScore.distance);
+	let time = Math.floor(gameScore.time);
+	let score = gameMode * 760000 - 640000 - gameScore.distance * 0.1 - gameScore.time * 1;
+	score = Math.floor(score);
+	let count = 0;
+	while(dist > 0) {
+		const digit = dist % 10;
+		dist = (dist - digit) / 10;
+		add_ui(numberImages[digit], true,
+			new THREE.Vector2(0.5, 0.5),
+			new THREE.Vector2(0.007, 0), new THREE.Vector2(0.014, 0),
+			new THREE.Vector2(-0.15 + count * 0.007, 0), new THREE.Vector2(-0.016, 0)
+		); //ui[ui.length-1].sprite.position.z = 1;
+		count++;
+	}
+	count = 0;
+	while(time > 0) {
+		const digit = time % 10;
+		time = (time - digit) / 10;
+		add_ui(numberImages[digit], true,
+			new THREE.Vector2(0.5, 0.5),
+			new THREE.Vector2(0.007, 0), new THREE.Vector2(0.014, 0),
+			new THREE.Vector2(-0.15 + count * 0.007, 0), new THREE.Vector2(-0.032, 0)
+		); //ui[ui.length-1].sprite.position.z = 1;
+		count++;
+	}
+	count = 0;
+	while(score > 0) {
+		const digit = score % 10;
+		score = (score - digit) / 10;
+		add_ui(numberImages[digit], true,
+			new THREE.Vector2(0.5, 0.5),
+			new THREE.Vector2(0.007, 0), new THREE.Vector2(0.014, 0),
+			new THREE.Vector2(-0.15 + count * 0.007, 0), new THREE.Vector2(-0.048, 0)
+		); //ui[ui.length-1].sprite.position.z = 1;
+		count++;
+	}
+	ui_resize();
+}
+
 
 
 function init_renderer() {
@@ -246,8 +298,6 @@ function init_camera() {
 	camera.lookAt(0, 0, 0);
 }
 
-
-
 function init_scene() {
 	background.userData = { id : 0 };
 	surface.position.y = -5;
@@ -257,8 +307,6 @@ function init_scene() {
 	boat.userData = { yVelocity : 0 };
 	boat.position.copy(surface.position);
 }
-
-
 
 const timer = {time : 0.0, period : 0.1, update : function(t) {
 	this.time += t;
@@ -562,7 +610,7 @@ function findPatterns(edge_list, fadeout=true) {
 		// if matched, change color(edge_list) and make visible(constellation_list[i])
 		if(matched) {
 			constellation_found[i] = true;
-			ui_update();
+			update_number_found();
 			if(fadeout) {
 				edge_list.forEach((edge) => {
 					edge.material.color = new THREE.Color(0x50ff50);
@@ -658,6 +706,9 @@ function init_sky() {
 function render() {
 	let t = clock.getDelta();
 	cameraController.update(t);
+	if(gamePhase == 'playing') {
+		gameScore.time += t;
+	}
 
 	// speed setting
 	const boatSpeed = 15;
@@ -673,6 +724,9 @@ function render() {
 	if(inputs['a']) { boat.rotation.y += boatRotSpeed * t; }
 	if(inputs['s']) { surface.position.sub(dir); rotAngle += stelRotSpeed * t;}
 	if(inputs['d']) { boat.rotation.y -= boatRotSpeed * t; }
+	if((inputs['w'] && !inputs['s']) || (!inputs['w'] && inputs['s'])) {
+		gameScore.distance += dir.length();
+	}
 	group_stars_selectable.rotateOnWorldAxis( axis, rotAngle );
 	group_stars_background.rotateOnWorldAxis( axis, rotAngle );
 	group_lines.rotateOnWorldAxis( axis, rotAngle );
@@ -765,8 +819,6 @@ console.log(star.userData.id);
 		requestAnimationFrame(render);
 	}
 }
-
-
 
 async function initialize() {
 	init_renderer();
