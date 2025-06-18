@@ -79,18 +79,15 @@ boat.add( boatLight );
 scene.add( boat );
 
 
-
-
 function ui_update() {
 	// change number of found constellations, current constellation image
 	let n_found = 0;
 	constellation_found.forEach((found) => {
 		if(found) {n_found++;}
 	});
-	ui[3].sprite.visible = true;
-	ui[4].sprite.visible = true;
-	ui[5].sprite.visible = true;
-	ui[6].sprite.visible = true;
+	if(gameMode == 1) {
+		n_found -= 76;
+	}
 	const dec = Math.floor(n_found / 10);
 	if(dec == 0) {
 		ui[2].sprite.visible = false;
@@ -139,50 +136,99 @@ function init_ui() {
 		new THREE.Vector2(),
 		new THREE.Vector2(0.4, 0), new THREE.Vector2(0.08, 0),
 		new THREE.Vector2(0.4, 0), new THREE.Vector2()
-	);
+	); // 0
 	add_ui(textureLoader.load('textures/click_to_start.png'), true,
 		new THREE.Vector2(0.5, 0.5),
 		new THREE.Vector2(0.09, 0), new THREE.Vector2(0.018, 0),
 		new THREE.Vector2(), new THREE.Vector2(0, -0.4)
-	);
+	); // 1
 	add_ui(numberImages[0], false,
 		new THREE.Vector2(0.5, 0.5),
 		new THREE.Vector2(0.01, 0), new THREE.Vector2(0.02, 0),
 		new THREE.Vector2(0.02, 0), new THREE.Vector2(0, -0.4)
-	);
+	); // 2
 	add_ui(numberImages[0], false,
 		new THREE.Vector2(0.5, 0.5),
 		new THREE.Vector2(0.01, 0), new THREE.Vector2(0.02, 0),
 		new THREE.Vector2(0.01, 0), new THREE.Vector2(0, -0.4)
-	);
+	); // 3
 	add_ui(numberImages[10], false,
 		new THREE.Vector2(0.5, 0.5),
 		new THREE.Vector2(0.01, 0), new THREE.Vector2(0.02, 0),
 		new THREE.Vector2(), new THREE.Vector2(0, -0.4)
-	);
+	); // 4
 	add_ui(numberImages[8], false,
 		new THREE.Vector2(0.5, 0.5),
 		new THREE.Vector2(0.01, 0), new THREE.Vector2(0.02, 0),
 		new THREE.Vector2(-0.01, 0), new THREE.Vector2(0, -0.4)
-	);
+	); // 5
 	add_ui(numberImages[8], false,
 		new THREE.Vector2(0.5, 0.5),
 		new THREE.Vector2(0.01, 0), new THREE.Vector2(0.02, 0),
 		new THREE.Vector2(-0.02, 0), new THREE.Vector2(0, -0.4)
-	);
+	); // 6
 	add_ui(constellationImages[0], false,
 		new THREE.Vector2(),
 		new THREE.Vector2(0, 0.3), new THREE.Vector2(0, 0.3),
 		new THREE.Vector2(0.5, 0), new THREE.Vector2(0, -0.5)
-	);
+	); // 7
 	add_ui(textureLoader.load('textures/guide.png'), false,
 		new THREE.Vector2(0.5, 0.5),
 		new THREE.Vector2(0.47, 0), new THREE.Vector2(0.25, 0),
 		new THREE.Vector2(), new THREE.Vector2()
-	);
+	); // 8
+	add_ui(textureLoader.load('textures/gamemode1.png'), true,
+		new THREE.Vector2(),
+		new THREE.Vector2(0.32, 0), new THREE.Vector2(0.03, 0),
+		new THREE.Vector2(0.4, 0), new THREE.Vector2(-0.03, 0)
+	); // 9
+	add_ui(textureLoader.load('textures/gamemode2.png'), true,
+		new THREE.Vector2(),
+		new THREE.Vector2(0.32, 0), new THREE.Vector2(0.03, 0),
+		new THREE.Vector2(0.4, 0), new THREE.Vector2(-0.06, 0)
+	); // 10
+	add_ui(textureLoader.load('textures/gamemode1_selection.png'), true,
+		new THREE.Vector2(),
+		new THREE.Vector2(0.32, 0), new THREE.Vector2(0.03, 0),
+		new THREE.Vector2(0.4, 0), new THREE.Vector2(-0.03, 0)
+	); // 11
+	add_ui(textureLoader.load('textures/gamemode2_selection.png'), true,
+		new THREE.Vector2(),
+		new THREE.Vector2(0.32, 0), new THREE.Vector2(0.03, 0),
+		new THREE.Vector2(0.4, 0), new THREE.Vector2(-0.06, 0)
+	); // 12
 	// Set UI size
 	ui_resize();
 }
+
+const initial_gamemode_selection = [false, false];
+let gameMode = 0;
+
+function start_game() {
+	ui[3].sprite.visible = true;
+	ui[4].sprite.visible = true;
+	ui[5].sprite.visible = true;
+	ui[6].sprite.visible = true;
+	ui[8].sprite.visible = true;
+	if(gameMode == 1) {
+		const zodiacList = [7, 78, 38, 12, 46, 86, 49, 73, 72, 16, 4, 66];
+		ui[5].sprite.material.map = numberImages[1];
+		ui[6].sprite.material.map = numberImages[2];
+		for(let i=1; i<=88; i++) {
+			let isZodiac = false;
+			zodiacList.forEach((idx) => {if(idx == i) {isZodiac = true;}});
+			if(!isZodiac) {
+				findPatterns(constellation_list[i], false);
+			}
+		}
+	}
+	else {
+		ui[5].sprite.material.map = numberImages[8];
+		ui[6].sprite.material.map = numberImages[8];
+	}
+	ui_update();
+}
+
 
 function init_renderer() {
 	renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -480,7 +526,7 @@ function createPatternEdge(star1, star2, edgecolor=0x505050) { // id: star1 < st
 const constellation_list = [];
 const constellation_found = [];
 
-function findPatterns(edge_list) {
+function findPatterns(edge_list, fadeout=true) {
 	// sort edge_list
 	edge_list.sort(function(edge1, edge2) {
 		if(edge1.userData.id1 < edge2.userData.id1) {
@@ -516,24 +562,30 @@ function findPatterns(edge_list) {
 		if(matched) {
 			constellation_found[i] = true;
 			ui_update();
-			edge_list.forEach((edge) => {
-				edge.material.color = new THREE.Color(0x50ff50);
-			});
+			if(fadeout) {
+				edge_list.forEach((edge) => {
+					edge.material.color = new THREE.Color(0x50ff50);
+				});
+			}
 			constellation_list[i].forEach((edge) => {
 				edge.material.color = new THREE.Color(0xa0a0a0);
 			});
 			break;
 		}
-		edge_list.forEach((edge => {
-			edge.material.color = new THREE.Color(0xff5000);
-		}));
+		if(fadeout) {
+			edge_list.forEach((edge => {
+				edge.material.color = new THREE.Color(0xff5000);
+			}));
+		}
 	}
 	// fadeout edges
-	edge_list.forEach((edge) => {
-		fadeoutEffect.push(
-			{object: edge, time: 1, action: function() {group_lines.remove(this.object);}}
-		);
-	});
+	if(fadeout) {
+		edge_list.forEach((edge) => {
+			fadeoutEffect.push(
+				{object: edge, time: 1, action: function() {group_lines.remove(this.object);}}
+			);
+		});
+	}
 }
 
 function init_sky() {
@@ -676,6 +728,22 @@ console.log(star.userData.id);
 		}
 	}
 
+	if(gamePhase == 'init') {
+		const windowSize = new THREE.Vector2(window.innerWidth, window.innerHeight);
+		if(initial_gamemode_selection[0]) {
+			ui[11].sprite.scale.x = Math.min(ui[11].sprite.scale.x + 2000 * t, ui[11].scaleX.dot(windowSize));
+		}
+		else {
+			ui[11].sprite.scale.x = Math.max(ui[11].sprite.scale.x - 2000 * t, 0);
+		}
+		if(initial_gamemode_selection[1]) {
+			ui[12].sprite.scale.x = Math.min(ui[12].sprite.scale.x + 2000 * t, ui[12].scaleX.dot(windowSize));
+		}
+		else {
+			ui[12].sprite.scale.x = Math.max(ui[12].sprite.scale.x - 2000 * t, 0);
+		}
+	}
+
 	// set background color
 	raycaster.set( camera.position, new THREE.Vector3(0, -1, 0) );
 	if(raycaster.intersectObject(surface).length == 0) {
@@ -699,7 +767,6 @@ async function initialize() {
 	init_renderer();
 	init_camera();
 	init_scene();
-
 	init_sky();
 	init_ui();
 
@@ -735,24 +802,41 @@ async function initialize() {
 	{
 		switch(gamePhase) {
 		case 'init':
-			gamePhase = 'waiting';
-			fadeoutEffect.push(
-				{object: ui[0].sprite, time: 1.5, action: function() {
-					scene_ui.remove(ui[0].sprite);
-				}},
-				{object: ui[1].sprite, time: 1.5, action: function() {
-					scene_ui.remove(ui[1].sprite);
-					ui_update();
-					ui[8].sprite.visible = true;
-				}}
-			);
-			cameraController.switchMode(
-				2,
-				75,
-				new THREE.Vector3(0, 4, 25),
-				new THREE.Vector3(),
-				function() {gamePhase = 'playing';}
-			);
+			let mode = 0;
+			if(initial_gamemode_selection[0]) { mode = 1; }
+			if(initial_gamemode_selection[1]) { mode = 2; }
+			if(mode != 0) {
+				gamePhase = 'waiting';
+				gameMode = mode;
+				fadeoutEffect.push(
+					{object: ui[0].sprite, time: 1.5, action: function() {
+						scene_ui.remove(ui[0].sprite);
+					}},
+					{object: ui[1].sprite, time: 1.5, action: function() {
+						scene_ui.remove(ui[1].sprite);
+					}},
+					{object: ui[9].sprite, time: 1.5, action: function() {
+						scene_ui.remove(ui[9].sprite);
+					}},
+					{object: ui[10].sprite, time: 1.5, action: function() {
+						scene_ui.remove(ui[10].sprite);
+					}},
+					{object: ui[11].sprite, time: 1.5, action: function() {
+						scene_ui.remove(ui[11].sprite);
+					}},
+					{object: ui[12].sprite, time: 1.5, action: function() {
+						scene_ui.remove(ui[12].sprite);
+						start_game();
+					}},
+				);
+				cameraController.switchMode(
+					2,
+					75,
+					new THREE.Vector3(0, 4, 25),
+					new THREE.Vector3(),
+					function() {gamePhase = 'playing';}
+				);
+			}
 			break;
 		case 'playing':
 			fadeoutEffect.push(
@@ -774,6 +858,17 @@ async function initialize() {
 	{
 		mousePointer.x = 2 * e.clientX / window.innerWidth - 1;
 		mousePointer.y = 1 - 2 * e.clientY / window.innerHeight;
+		if(gamePhase == 'init') {
+			const windowSize = new THREE.Vector2(window.innerWidth, window.innerHeight);
+			const mx1 = mousePointer.x * window.innerWidth / 2 + windowSize.dot(ui[9].posX);
+			const my1 = mousePointer.y * window.innerHeight / 2 - windowSize.dot(ui[9].posY);
+			const mx2 = mousePointer.x * window.innerWidth / 2 + windowSize.dot(ui[10].posX);
+			const my2 = mousePointer.y * window.innerHeight / 2 - windowSize.dot(ui[10].posY);
+			initial_gamemode_selection[0] = (0 < mx1 && mx1 < windowSize.dot(ui[9].scaleX) &&
+											 0 < my1 && my1 < windowSize.dot(ui[9].scaleY));
+			initial_gamemode_selection[1] = (0 < mx2 && mx2 < windowSize.dot(ui[10].scaleX) &&
+											 0 < my2 && my2 < windowSize.dot(ui[10].scaleY));
+		}
 	}
 	// keyboard
 	window.onkeydown = (e) =>
